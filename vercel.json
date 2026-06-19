@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/initiative",
-      "schedule": "*/5 * * * *"
+      "schedule": "30 1 * * *"
     }
   ]
 }
