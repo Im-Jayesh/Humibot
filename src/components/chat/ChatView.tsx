@@ -14,7 +14,10 @@ import {
 import { moodColor } from "@/lib/persona/mood";
 import type { Mood } from "@/lib/types/persona";
 
-const USE_POLLING = process.env.NEXT_PUBLIC_USE_POLLING === "true";
+const USE_POLLING =
+  process.env.NEXT_PUBLIC_USE_POLLING === "true" ||
+  process.env.NEXT_PUBLIC_VERCEL_ENV !== undefined ||
+  process.env.NODE_ENV === "production";
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -257,6 +260,10 @@ export function ChatView() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text }),
     });
+
+    // Instantly sync messages and status after POST request finishes, for instant replies on serverless hosting
+    void syncMessages(lastMessageIdRef.current);
+    void loadPersona();
   }
 
   return (
