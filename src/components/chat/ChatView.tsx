@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { LogOut, Settings2 } from "lucide-react";
+import { LogOut, Settings2, Info } from "lucide-react";
 import { Composer } from "@/components/chat/Composer";
 import { MessageList, type ChatMessage } from "@/components/chat/MessageList";
 import {
@@ -238,7 +238,11 @@ export function ChatView() {
   }
 
   async function sendMessage(text: string) {
-    const clientId = crypto.randomUUID();
+    const clientId =
+      typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : Math.random().toString(36).substring(2, 15) +
+          Math.random().toString(36).substring(2, 15);
     pendingIdRef.current -= 1;
     const optimistic = createOptimisticUserMessage(
       text,
@@ -256,50 +260,56 @@ export function ChatView() {
   }
 
   return (
-    <div className="flex h-[100dvh] w-full justify-center bg-zinc-100 dark:bg-zinc-900">
-      <div className="flex h-full w-full min-w-0 flex-col bg-white dark:bg-zinc-950 sm:max-w-lg md:max-w-xl lg:max-w-2xl">
-        <header className="flex shrink-0 items-center justify-between border-b border-zinc-200 px-3 py-3 sm:px-4 dark:border-zinc-800">
-          <div className="flex min-w-0 items-center gap-2">
-            <span
-              className={`h-2.5 w-2.5 shrink-0 rounded-full ${moodColor(mood)}`}
-            />
+    <div className="flex h-[100dvh] w-full justify-center bg-zinc-50 dark:bg-zinc-950 transition-colors duration-300">
+      <div className="flex h-full w-full min-w-0 flex-col bg-white dark:bg-zinc-900 border-x border-zinc-200/50 dark:border-zinc-800/50 sm:max-w-lg md:max-w-xl lg:max-w-2xl shadow-2xl shadow-sky-500/5">
+        <header className="flex shrink-0 items-center justify-between border-b border-zinc-150/80 dark:border-zinc-800/80 px-4 py-3 backdrop-blur-md bg-white/70 dark:bg-zinc-900/70 sticky top-0 z-10">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="relative h-10 w-10 shrink-0 select-none">
+              <div className="flex h-full w-full items-center justify-center rounded-2xl bg-gradient-to-tr from-sky-400 to-indigo-500 text-sm font-bold text-white shadow-md shadow-sky-500/20">
+                {personaName.slice(0, 2).toUpperCase()}
+              </div>
+              <span className={`absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-white dark:border-zinc-900 ${moodColor(mood)} shadow-sm`} />
+            </div>
             <div className="min-w-0">
-              <h1 className="truncate text-sm font-semibold">{personaName}</h1>
-              <p className="truncate text-xs capitalize text-zinc-500">{mood}</p>
+              <h1 className="truncate text-sm font-bold text-zinc-850 dark:text-zinc-100">{personaName}</h1>
+              <p className="truncate text-[10px] font-bold uppercase tracking-wider text-sky-500 dark:text-sky-400">{mood}</p>
             </div>
           </div>
-          <div className="flex shrink-0 items-center">
+          <div className="flex shrink-0 items-center gap-1">
             <button
               type="button"
               onClick={logout}
-              className="rounded-full p-2 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900"
+              className="rounded-xl p-2 text-zinc-500 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all duration-200"
               aria-label="Sign out"
             >
-              <LogOut className="h-4 w-4" />
+              <LogOut className="h-4.5 w-4.5" />
             </button>
             <Link
               href="/settings"
-              className="rounded-full p-2 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900"
+              className="rounded-xl p-2 text-zinc-500 hover:text-sky-500 hover:bg-sky-50 dark:hover:bg-sky-950/20 transition-all duration-200"
               aria-label="Settings"
             >
-              <Settings2 className="h-4 w-4" />
+              <Settings2 className="h-4.5 w-4.5" />
             </Link>
           </div>
         </header>
 
         {!health.ok ? (
-          <div className="shrink-0 bg-amber-50 px-3 py-2 text-xs text-amber-800 sm:px-4 dark:bg-amber-950 dark:text-amber-200">
-            {!health.ai
-              ? "AI offline. Set GEMINI_API_KEY on Vercel or run Ollama locally."
-              : !health.db
-                ? "Database not connected."
-                : "Companion offline."}
+          <div className="shrink-0 bg-rose-50/80 border-b border-rose-100 dark:bg-rose-950/20 dark:border-rose-900/30 px-4 py-2 text-xs text-rose-800 dark:text-rose-300 flex items-center gap-2 backdrop-blur-sm animate-fadeIn">
+            <Info className="h-4 w-4 text-rose-500 shrink-0" />
+            <span>
+              {!health.ai
+                ? "AI offline. Setup GEMINI_API_KEY in Vercel or locally."
+                : !health.db
+                  ? "Database connection failed."
+                  : "Companion server offline."}
+            </span>
           </div>
         ) : null}
 
         {notificationsEnabled ? (
-          <div className="shrink-0 bg-sky-50 px-3 py-1.5 text-center text-[11px] text-sky-700 sm:px-4 dark:bg-sky-950 dark:text-sky-200">
-            Proactive texts enabled via cron ({health.provider})
+          <div className="shrink-0 bg-sky-50/80 border-b border-sky-100 dark:bg-sky-950/20 dark:border-sky-900/30 px-4 py-1.5 text-center text-[10px] font-bold text-sky-700 dark:text-sky-400 uppercase tracking-wider backdrop-blur-sm">
+            Proactive messaging enabled via Vercel Crons ({health.provider})
           </div>
         ) : null}
 

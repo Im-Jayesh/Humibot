@@ -362,6 +362,22 @@ export async function queueUserMessage(userId: string, text: string) {
     .limit(1);
   if (!row?.isGenerating) return false;
 
+  // Self-healing: if stuck in generating state for >30s (e.g. server crashed/restarted), reset it!
+  const updatedAt = row.updatedAt ?? new Date();
+  const updatedAgoMs = Date.now() - new Date(updatedAt).getTime();
+  if (updatedAgoMs > 30000) {
+    console.warn(`[Persona Engine] Resetting stale isGenerating state for user ${userId} (${updatedAgoMs}ms old)`);
+    await db
+      .update(personaState)
+      .set({
+        isGenerating: false,
+        pendingMessages: [],
+        updatedAt: new Date(),
+      })
+      .where(eq(personaState.id, row.id));
+    return false;
+  }
+
   const pending = (row.pendingMessages as string[]) ?? [];
   await db
     .update(personaState)

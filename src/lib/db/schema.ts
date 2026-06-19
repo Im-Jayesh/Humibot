@@ -190,3 +190,19 @@ export const initiativeLog = pgTable(
   },
   (table) => [index("initiative_log_user_idx").on(table.userId)]
 );
+
+export const userProfile = pgTable(
+  "user_profile",
+  {
+    id: serial("id").primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull().default(""),
+    location: text("location").notNull().default(""),
+    profession: text("profession").notNull().default(""),
+    facts: jsonb("facts").$type<string[]>().notNull().default([]),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+  },
+  (table) => [uniqueIndex("user_profile_user_idx").on(table.userId)]
+);

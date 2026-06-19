@@ -1,15 +1,13 @@
-export function splitIntoBubbles(text: string, maxLen = 120): string[] {
+export function splitIntoBubbles(text: string, maxLen = 160): string[] {
   const cleaned = text.trim();
   if (!cleaned) return [];
 
-  const sentences = cleaned
-    .split(/(?<=[.!?…])\s+/)
-    .flatMap((part) => splitLongPart(part, maxLen))
-    .map((s) => s.trim())
-    .filter(Boolean);
+  if (cleaned.length <= maxLen) {
+    return [cleaned];
+  }
 
-  if (sentences.length === 0) return [cleaned.slice(0, maxLen)];
-  return sentences;
+  const parts = splitLongPart(cleaned, maxLen);
+  return parts.map((s) => s.trim()).filter(Boolean);
 }
 
 export function normalizeBubbles(bubbles: string[]): string[] {
@@ -37,17 +35,17 @@ export function typingDelayMs(
   mood: string,
   index: number
 ): number {
-  const base = 150 + bubble.length * 6 + index * 80;
+  const base = 80 + bubble.length * 2 + index * 25;
   const moodFactor =
     mood === "anxious" || mood === "excited"
-      ? 0.75
+      ? 0.7
       : mood === "annoyed" || mood === "hurt"
-        ? 1.25
+        ? 1.2
         : mood === "tired"
-          ? 1.35
+          ? 1.3
           : 1;
-  const jitter = Math.floor(Math.random() * 150);
+  const jitter = Math.floor(Math.random() * 80);
   const delay = Math.round(base * moodFactor + jitter);
-  // Cap at 1000ms max delay so it never blocks the conversation for too long
-  return Math.min(1000, delay);
+  // Cap at 350ms max delay per bubble so the conversation streams in fast
+  return Math.min(350, delay);
 }

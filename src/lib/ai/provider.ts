@@ -11,7 +11,7 @@ export function useGemini() {
 
 export function getChatModel() {
   if (useGemini()) {
-    return google(process.env.GEMINI_MODEL ?? "gemini-2.5-flash-lite");
+    return google(process.env.GEMINI_MODEL ?? "gemini-2.5-flash");
   }
   return ollama(process.env.OLLAMA_CHAT_MODEL ?? "gemma4:e2b");
 }

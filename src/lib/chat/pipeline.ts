@@ -28,6 +28,7 @@ import { getDb } from "@/lib/db";
 import { personaState } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { publishMoodShift } from "@/lib/persona/publish-mood";
+import { extractUserProfileUpdates } from "@/lib/persona/profile-extractor";
 
 export { queueUserMessage };
 
@@ -60,6 +61,7 @@ export async function handleUserMessage(userId: string, text: string) {
   }
 
   await onUserMessage(userId, trimmed);
+  void extractUserProfileUpdates(userId, trimmed);
   await generateAssistantReply(userId, trimmed);
 }
 

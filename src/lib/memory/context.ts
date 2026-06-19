@@ -15,6 +15,7 @@ import {
   getStyleSamples,
   relationshipHint,
 } from "@/lib/persona/engine";
+import { getUserProfile } from "@/lib/persona/profile-extractor";
 import type { PersonaConfig } from "@/lib/types/persona";
 
 const HOT_LIMIT = 40;
@@ -168,7 +169,7 @@ export async function searchRelevantMessages(
 }
 
 export async function buildPromptContext(userId: string, userText: string) {
-  const [config, runtime, recent, summary, recalled, styleSamples] =
+  const [config, runtime, recent, summary, recalled, styleSamples, userProfile] =
     await Promise.all([
       getPersonaConfig(userId),
       getPersonaRuntime(userId),
@@ -176,6 +177,7 @@ export async function buildPromptContext(userId: string, userText: string) {
       getLatestSummary(userId),
       searchRelevantMessages(userId, userText, 5),
       getStyleSamples(userId),
+      getUserProfile(userId),
     ]);
 
   const transcript = recent.map((m) => `${m.role}: ${m.content}`).join("\n");
@@ -193,6 +195,7 @@ export async function buildPromptContext(userId: string, userText: string) {
       userId,
       config,
       runtime,
+      userProfile,
       summary?.summary ?? "",
       recalledLines,
       styleLines,
@@ -206,6 +209,7 @@ function buildSystemPrompt(
   userId: string,
   config: PersonaConfig,
   runtime: Awaited<ReturnType<typeof getPersonaRuntime>>,
+  userProfile: Awaited<ReturnType<typeof getUserProfile>>,
   warmSummary: string,
   recalled: string,
   styleLines: string,
@@ -224,8 +228,22 @@ function buildSystemPrompt(
     day: "numeric",
   });
 
+  const userProfileLines = [
+    userProfile.name ? `- Name: ${userProfile.name}` : null,
+    userProfile.location ? `- Location: ${userProfile.location}` : null,
+    userProfile.profession ? `- Profession: ${userProfile.profession}` : null,
+    userProfile.facts.length > 0
+      ? `- Things you know about the user:\n${userProfile.facts.map((f) => `  * ${f}`).join("\n")}`
+      : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
   return `
 You are ${config.name}, a real human texting someone. Never say you are an AI.
+
+User Profile (Who you are talking to):
+${userProfileLines || "No details known yet. Be curious and learn about them naturally."}
 
 Profile:
 - Gender: ${config.gender}
@@ -277,7 +295,7 @@ ${transcript}
 User just said:
 ${userText}
 
-Reply as ${config.name}. Return 1-4 short text bubbles, along with your updated mood and moodIntensity.
+Reply as ${config.name}. Return 1 to 6 text bubbles of varying lengths (some short, some longer, as natural in casual texting), along with your updated mood and moodIntensity.
 `.trim();
 }
 
@@ -299,7 +317,7 @@ Intent: ${intent}
 Style to imitate:
 ${styleLines || "Natural casual texting"}
 
-Write 1-3 short casual bubbles. shouldSend=false only if sleeping or clearly inappropriate.
+Write 1 to 4 casual text bubbles of varying lengths. shouldSend=false only if sleeping or clearly inappropriate.
 Never mention being AI.
 `.trim();
 }
