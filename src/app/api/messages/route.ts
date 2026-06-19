@@ -45,7 +45,7 @@ export async function POST(request: Request) {
       return Response.json({ ok: true, queued: true });
     }
 
-    void handleUserMessage(user.id, text);
+    await handleUserMessage(user.id, text);
     return Response.json({ ok: true, queued: false });
   } catch (error) {
     if (error instanceof AuthError) {

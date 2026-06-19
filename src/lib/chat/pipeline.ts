@@ -44,8 +44,10 @@ export async function handleUserMessage(userId: string, text: string) {
     groupId,
   });
 
+  const backgroundPromises: Promise<any>[] = [];
+
   if (userRow) {
-    void embedMessage(userRow.id, trimmed);
+    backgroundPromises.push(embedMessage(userRow.id, trimmed));
     sseHub.publish({
       type: "message_bubble",
       userId,
@@ -61,12 +63,16 @@ export async function handleUserMessage(userId: string, text: string) {
   }
 
   await onUserMessage(userId, trimmed);
-  void extractUserProfileUpdates(userId, trimmed);
+  backgroundPromises.push(extractUserProfileUpdates(userId, trimmed));
   await generateAssistantReply(userId, trimmed);
+
+  // Safely await background database updates to prevent Vercel from suspending the serverless function
+  await Promise.all(backgroundPromises);
 }
 
 async function generateAssistantReply(userId: string, initialText: string) {
   await setGenerating(userId, true);
+  const backgroundPromises: Promise<any>[] = [];
   try {
     let userText = initialText;
     let safety = 0;
@@ -121,7 +127,7 @@ async function generateAssistantReply(userId: string, initialText: string) {
         });
 
         if (row) {
-          void embedMessage(row.id, bubbles[i]);
+          backgroundPromises.push(embedMessage(row.id, bubbles[i]));
           sseHub.publish({
             type: "message_bubble",
             userId,
@@ -140,7 +146,7 @@ async function generateAssistantReply(userId: string, initialText: string) {
 
       sseHub.publish({ type: "typing_stop", userId });
       await onAssistantMessage(userId);
-      void maybeRefreshSummary(userId);
+      backgroundPromises.push(maybeRefreshSummary(userId));
 
       const pending = await drainPendingMessages(userId);
       if (pending.length === 0) break;
@@ -154,7 +160,7 @@ async function generateAssistantReply(userId: string, initialText: string) {
           groupId: extraGroupId,
         });
         if (extraRow) {
-          void embedMessage(extraRow.id, extra);
+          backgroundPromises.push(embedMessage(extraRow.id, extra));
           sseHub.publish({
             type: "message_bubble",
             userId,
@@ -174,6 +180,9 @@ async function generateAssistantReply(userId: string, initialText: string) {
 
       userText = `${userText}\n(they also said: ${pending.join(" / ")})`;
     }
+
+    // Await all background database updates to prevent Vercel from suspending the serverless function
+    await Promise.all(backgroundPromises);
   } finally {
     await setGenerating(userId, false);
   }
