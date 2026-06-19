@@ -1,4 +1,4 @@
-import { google } from "@ai-sdk/google";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { ollama } from "ai-sdk-ollama";
 
 export function useGemini() {
@@ -11,7 +11,12 @@ export function useGemini() {
 
 export function getChatModel() {
   if (useGemini()) {
-    return google(process.env.GEMINI_MODEL ?? "gemini-2.5-flash");
+    const apiKey =
+      process.env.GOOGLE_GENERATIVE_AI_API_KEY ?? process.env.GEMINI_API_KEY;
+    const googleInstance = createGoogleGenerativeAI({
+      apiKey,
+    });
+    return googleInstance(process.env.GEMINI_MODEL ?? "gemini-2.5-flash");
   }
   return ollama(process.env.OLLAMA_CHAT_MODEL ?? "gemma4:e2b");
 }
